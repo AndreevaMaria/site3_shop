@@ -34,7 +34,6 @@ if(!isset($_POST['regbtn'])) {
     }
 
     if(Tools::register($_POST['login'], $_POST['pass1'], $path)) {
-        echo $path;
         echo '<h5 class="text-success">New user added</h5>';
     }
 }

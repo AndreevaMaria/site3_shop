@@ -46,16 +46,46 @@ class Tools {
         $customer->intoDb();
         return true;
     }
+
+    static function login($login, $pass) {
+        $name = trim(utf8_encode(htmlspecialchars($login)));
+        $pass = trim(utf8_encode(htmlspecialchars($pass)));
+    
+        if ($name == "" || $pass == "") {
+            echo "<h3 class='text-danger'>Заполните все поля</h3>";
+            return false;
+        }
+        
+        if(strlen($name) < 3 || strlen($name) > 30 || strlen($pass) < 3 || strlen($pass) > 30) {
+            echo "<h3 class='text-danger'>От 0 до 30 символов</h3>";
+            return false;
+        }
+    
+        $pdo = Tools::connect();
+        $ps = $pdo->prepare("SELECT login, pass, roleid FROM customers WHERE login='$name'");
+        $ps->execute();      
+        while($row = $ps->fetch()) {
+            if($name == $row['login'] && $pass == $row['pass']) {
+                $_SESSION['ruser'] = $name;
+                if($row['roleid'] == 1) { 
+                    $_SESSION['radmin'] = $name; 
+                } 
+                return true;
+            } else {
+                return false;
+            } 
+        }
+    }
 }
 
 class Customer {
-    protected $id;
-    protected $login;
-    protected $pass;
-    protected $roleid;
-    protected $discount;
-    protected $total;
-    protected $imagepath;
+    public $id;
+    public $login;
+    public $pass;
+    public $roleid;
+    public $discount;
+    public $total;
+    public $imagepath;
 
     function __construct($login, $pass, $imagepath, $id=0) {
         $this->login = $login;
@@ -85,7 +115,7 @@ class Customer {
         }
     }
     //получаем данные о созданном пользователе из таблицы
-    static function fromDb ($id) {
+    static function fromDb($id) {
         $customer = null;
         try {
             $pdo = Tools::connect();
@@ -142,22 +172,86 @@ class Item {
             return false;
         }
     }
-    //получаем данные о созданном продукте из таблицы
-    static function fromDb ($id) {
-        $customer = null;
+    //получение товаров
+    static function fromDb($id) {
         try {
             $pdo = Tools::connect();
-            $ps = $pdo->prepare("SELECT * FROM customers WHERE id=?");
-            $res = $ps->execute(array($id)); // == [$id]
-            // перебираем данные о полученном пользователе и заносим его в ассоциативный массив $row
-            $row = $res->fetch();
-            $customer = new Customer($row['login'], $row['pass'], $row['imagepath'], $row['id']);
-            return $customer;
+            $ps = $pdo->prepare("SELECT * FROM items WHERE id=?");
+            $ps->execute(array($id));
+            $row = $ps->fetch();
+            $item = new Item($row['itemname'], $row['catid'], $row['pricein'], $row['pricesale'], $row['info'], $row['imagepath'], $row['rate'], $row['action'], $row['id']);
+            return $item;
 
         } catch (PDOException $e) {
         echo $e->getMessage();
         return false;
         }
     }
+
+    static function getItems ($catid=0) {
+        try {
+            $pdo = Tools::connect();
+            if($catid == 0) { //выбираем все товары (не указана категория)
+                $ps = $pdo->prepare("SELECT * FROM items");
+                $res = $ps->execute();
+            } else { //выбираем товары по категории
+                $ps = $pdo->prepare("SELECT * FROM items WHERE catid=?");
+                $ps->execute([$catid]);
+            }
+            while($row = $ps->fetch()) {
+                //создаем экземпляр класса Item
+                $item = new Item($row['itemname'], $row['catid'], $row['pricein'], $row['pricesale'], $row['info'], $row['imagepath'], $row['rate'], $row['action'], $row['id']);
+                //ассоциативный массив отобранных товаров (сущности или экземляры класса Item)
+                $items[] = $item;
+            }
+                return $items; // возвращаем товары в точку вызова - станица Каталог
+        } catch (PDOException $e) {
+        echo $e->getMessage();
+        return false;
+        }
+    }
+
+    function drawItem() {
+        echo '<div class="col-sm-6 col-md-4 col-lg-3 item-card mb-3">
+                <div class="card bg-light border rounded"><div class="card-body">';
+        echo "<div class='row item-card__title'>
+                <a href='pages/item_info.php?name=".$this->id."' class='col-7 ml-2 float-left' target='_blank'>".$this->itemname."</a>";
+        echo "<span class='float-right col-4 mr-0 ml-auto'>".$this->rate."&nbsp;rate</span>";
+        echo '</div>';
+        echo '<p class="ml-2">'.$this->info.'</p>';
+        
+        echo '<div clss="row">';
+        echo '<div class="col-12 my-2 item-card__img">';
+        echo '<img src="'.$this->imagepath.'" class="img-fluid">';
+        echo '</div></div>';
+        echo '<div class="item-card__price">';
+        echo '<span class="mr-3 float-right">'.$this->pricesale.'&nbsp;$</span>';
+        echo '</div>';
+        echo '<div class="my-1 ml-2 text-justify item-card__title">';
+        
+        echo '</div>';
+        echo '<div class="my-1 text-justify item-card__cart">';
+        $ruser = '';
+        if(!isset($_SESSION['reg']) || $_SESSION['reg'] == '') {
+            $ruser = 'cart_'.$this->id;
+        } else {$ruser = $_SESSION['reg']."_".$this->id;}
+        echo "<button class='btn btn-primary btn-lg btn-block' onclick=createCookie('".$ruser."','".$this->id."')>Add to cart</button>";
+        echo '</div>';
+        echo '</div></div></div>';
+    }
+
+    public function drawforCart() { 
+        echo '<tr class="bg-light">';
+        echo '<td><img src="'.$this->imagepath.'" class="img-fluid item-img"></td>';
+        echo '<td class="align-middle">'.$this->itemname.'</td>';
+        echo '<td class="align-middle">'.$this->pricesale.'</td>';
+        if(!isset($_SESSION['reg']) || $_SESSION['reg'] == '') {
+            $ruser = 'cart_'.$this->id;
+        } else {$ruser = $_SESSION['reg']."_".$this->id;}
+        echo '<td class="align-middle"><button class="btn btn-danger" onclick=eraseCookie("'.$ruser.'")>Dell</button></td>';
+        echo '</tr>';
+    }
 }
+
+
 ?>

@@ -1,8 +1,9 @@
 <?php
-echo '<h4>Registration</h4>';
+echo '<h3 class="text-light mb-4">Registration</h3>';
 
 if(!isset($_POST['regbtn'])) {
 ?>
+<div class="inpcard rounded mb-4">
 <form action="index.php?page=3" method="post" enctype="multipart/form-data">
     <div class="form-group">
         <label for="login">Login: 
@@ -24,8 +25,9 @@ if(!isset($_POST['regbtn'])) {
             <input type="file" class="form-control" name="imagepath">
         </label>
     </div>
-    <input type="submit" class="btn btn-primary" name="regbtn">
+    <input type="submit" class="btn btn-primary mt-4" name="regbtn">
 </form>
+</div>
 <?php
 } else {
     if(is_uploaded_file($_FILES['imagepath']['tmp_name'])) {
@@ -34,6 +36,6 @@ if(!isset($_POST['regbtn'])) {
     }
 
     if(Tools::register($_POST['login'], $_POST['pass1'], $path)) {
-        echo '<h5 class="text-success">New user added</h5>';
+        echo '<h5 class="text-light">New user added</h5>';
     }
 }

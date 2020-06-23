@@ -25,9 +25,8 @@ include_once("pages/classes.php");
             <?php include_once("pages/menu.php");
             echo '<li>';
             include_once("pages/login.php");
-            echo '</li>';
+            echo '</li></ul>';
             ?>
-            </ul>
         </nav>
     </div>
 <div class="container">
@@ -46,7 +45,7 @@ include_once("pages/classes.php");
         </section>
     </div>
 </div>
-<footer class="row bg-dark justify-content-center fixed-bottom">
+<footer class="row bg-dark justify-content-center">
     <small class="text-light my-2">Step academy &copy; 2020   </small>
 </footer>
 

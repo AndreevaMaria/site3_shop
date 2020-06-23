@@ -2,6 +2,7 @@
 
 class Tools {
     static function connect($host="localhost:3306", $user="root", $pass="123456", $dbname="shop") {
+    //static function connect($host="sql307.epizy.com", $user="epiz_26083269", $pass="F4IitMs85x3wScZ", $dbname="epiz_26083269_site3") {
         // PDO (PHP data object) - механизм взаимодействия с СУБД, позволяет облегчить рутинные задачи
         // при выполнении запросов и содержит защитные механизмы приработе с СУБД
 
@@ -215,8 +216,8 @@ class Item {
         echo '<div class="col-sm-6 col-md-4 col-lg-3 item-card mb-3">
                 <div class="card bg-light border rounded"><div class="card-body">';
         echo "<div class='row item-card__title'>
-                <a href='pages/item_info.php?name=".$this->id."' class='col-7 ml-2 float-left' target='_blank'>".$this->itemname."</a>";
-        echo "<span class='float-right col-4 mr-0 ml-auto'>".$this->rate."&nbsp;rate</span>";
+                <a href='pages/item_info.php?name=".$this->id."' class='ml-2 float-left' target='_blank'>".$this->itemname."</a>";
+        echo "<span class='float-right mr-0 ml-auto'>".$this->rate."&nbsp;rate</span>";
         echo '</div>';
         echo '<p class="ml-2">'.$this->info.'</p>';
         

@@ -207,8 +207,8 @@ class Item {
             }
                 return $items; // возвращаем товары в точку вызова - станица Каталог
         } catch (PDOException $e) {
-        echo $e->getMessage();
-        return false;
+            echo $e->getMessage();
+            return false;
         }
     }
 
@@ -233,9 +233,9 @@ class Item {
         echo '</div>';
         echo '<div class="my-1 text-justify item-card__cart">';
         $ruser = '';
-        if(!isset($_SESSION['reg']) || $_SESSION['reg'] == '') {
+        if(!isset($_SESSION['ruser'])) {
             $ruser = 'cart_'.$this->id;
-        } else {$ruser = $_SESSION['reg']."_".$this->id;}
+        } else {$ruser = $_SESSION['ruser']."_".$this->id;}
         echo "<button class='btn btn-primary btn-lg btn-block' onclick=createCookie('".$ruser."','".$this->id."')>Add to cart</button>";
         echo '</div>';
         echo '</div></div></div>';
@@ -246,13 +246,73 @@ class Item {
         echo '<td><img src="'.$this->imagepath.'" class="img-fluid item-img"></td>';
         echo '<td class="align-middle">'.$this->itemname.'</td>';
         echo '<td class="align-middle">'.$this->pricesale.'</td>';
-        if(!isset($_SESSION['reg']) || $_SESSION['reg'] == '') {
+        if(!isset($_SESSION['ruser'])) {
             $ruser = 'cart_'.$this->id;
-        } else {$ruser = $_SESSION['reg']."_".$this->id;}
+        } else {$ruser = $_SESSION['ruser']."_".$this->id;}
         echo '<td class="align-middle"><button class="btn btn-danger" onclick=eraseCookie("'.$ruser.'")>Dell</button></td>';
         echo '</tr>';
     }
-}
 
+    function sale() {
+        try {
+            $pdo = Tools::connect();
+            $ruser = 'cart';
+            if(isset($_SESSION['ruser'])) {
+                $ruser = $_SESSION['ruser'];
+            }
+            $upd = "UPDATE customers SET total=total+? WHERE login=?";
+            $ps = $pdo->prepare($upd);
+            $res = $ps->execute([$this->pricesale, $ruser]);
+
+            //создаем данные о покупке товара с занесением в таблицу sales
+            $ins = "INSERT INTO sales(customername, itemname, pricein, pricesale, datesale) VALUES(?,?,?,?,?)";
+            $ps = $pdo->prepare($ins);
+            $zone = date_default_timezone_set('Asia/Novosibirsk');
+            $res = $ps->execute([$ruser, $this->itemname, $this->pricein, $this->pricesale, @date("d/M/Y, H:i:s", $zone)]);
+            return $this->id;
+
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            return false;
+        }
+    }
+    function SMTP($id_result) {
+        require_once("PHPMailer/PHPMailerAutoload.php");
+        require_once("private/private_data.php");
+
+        $mail = new PHPMailer;
+        $mail->Charset = "UTF8";
+
+        //настраиваем MHTP - почтовый протокол передачи данных
+        $mail->isSMTP();
+        $mail->SMTPAuth = true;
+
+        $mail->Host = 'ssl://smtp.mail.ru';
+        $mail->Port = 465;
+        $mail->Username = MAIL;
+        $mail->Password = PASS;
+
+        $mail->setFrom('152152m@mail.ru', "SHOP NATALI");
+        $mail->addAddress('152152m@mail.ru', "ADMIN");
+
+        $mail->Subject = "Новый заказ на сайте SHOP NATALI";
+
+        $body = "<table cellspacing='0' cellpadding='0' border='2' width='800' style='background-color: green!important'>";
+        foreach($id_result as $id) {
+            $item = self::fromDb($id);
+            $mail->AddEmbeddedImage($item->imagepath, 'item');
+            $body .= "<tr>
+                        <th>$item->itemname</th>
+                        <td>$item->pricesale</td>
+                        <td>$item->info</td>
+                        <td><img src='cid:item' alt='' height='100'></td>
+                    </tr>";
+        }
+        $body .= "</table>";
+        $mail->msgHTML($body);
+        $mail->send();
+
+    }
+}
 
 ?>

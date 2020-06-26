@@ -281,7 +281,7 @@ class Item {
         require_once("private/private_data.php");
 
         $mail = new PHPMailer;
-        $mail->Charset = "UTF8";
+        $mail->Charset = "UTF-8";
 
         //настраиваем MHTP - почтовый протокол передачи данных
         $mail->isSMTP();
@@ -292,27 +292,62 @@ class Item {
         $mail->Username = MAIL;
         $mail->Password = PASS;
 
-        $mail->setFrom('152152m@mail.ru', "SHOP NATALI");
-        $mail->addAddress('152152m@mail.ru', "ADMIN");
+        $mail->setFrom('152152m@mail.ru', 'SHOP NATALI by Andreeva Maria, https://github.com/AndreevaMaria/site3_shop');
+        //$mail->addAddress('152152m@mail.ru', 'ADMIN');
+        //$mail->addAddress('petrovski_a@itstep.org', 'SUPER');
+        
+        $mail->Subject = 'New order on site SHOP NATALI';
 
-        $mail->Subject = "Новый заказ на сайте SHOP NATALI";
-
-        $body = "<table cellspacing='0' cellpadding='0' border='2' width='800' style='background-color: green!important'>";
+        $body = "<table cellspacing='0' cellpadding='0' border='2' width='800' style='background-color: bisque!important'>";
+        $i = 0;
+        $arrItem = [];
         foreach($id_result as $id) {
             $item = self::fromDb($id);
-            $mail->AddEmbeddedImage($item->imagepath, 'item');
+            array_push($arrItem, $item->itemname, $item->pricesale, $item->info);
+            $path = $item->imagepath;
+            $cid = md5($path);
+            $mail->AddEmbeddedImage($path, $cid, 'item_'.$i);
             $body .= "<tr>
-                        <th>$item->itemname</th>
-                        <td>$item->pricesale</td>
-                        <td>$item->info</td>
-                        <td><img src='cid:item' alt='' height='100'></td>
+                        <th style='width: 200px;'>$item->itemname</th>
+                        <td style='width: 150px;text-align: center;'>$item->pricesale</td>
+                        <td style='text-align: center;'>$item->info</td>
+                        <td style='width: 100px;'><img src='cid:$cid' alt='item_$i' style='width: 100px;'></td>
                     </tr>";
+            ++$i;
         }
         $body .= "</table>";
         $mail->msgHTML($body);
         $mail->send();
 
+        //CSV - запись в Excel-файл
+        try {
+            $csv = new CSV("private/excel_file.csv"); //Открываем наш csv
+            $csv->setCSV($arrItem);
+        } catch (Exception $e) { //Если csv файл не существует, выводим сообщение
+                echo "Ошибка: " . $e->getMessage();
+            }
+
     }
+
 }
 
+class CSV {
+    private $csv_file = null;
+
+    public function __construct($csv_file) {
+        $this->csv_file = $csv_file; // private/excel_file.csv
+    }
+
+    function setCSV($arrItem) {
+        $items = array_chunk($arrItem, 3);
+        // открываем csv-файл до записи
+        $file = fopen($this->csv_file, 'a+'); // добавить в файл, + - это если он еще не создан, то создать его
+        foreach($items as $item) {     
+            $itemCSV = implode("; ", $item);  
+            var_dump($itemCSV);   
+            fputcsv($file, $item);
+        }
+        fclose($file);
+    }
+}
 ?>
